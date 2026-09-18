@@ -265,7 +265,15 @@
 /* OxideBSD's own invention (146). Same story as SYS_connect above -- listen(fd, backlog) is only
  * 2 arguments, no reduction needed. */
 #define __NR_listen				146
-#define __NR_getsockname		51
+/* OxideBSD's own invention (559, continuing right past SYS_get_keyevent = 558 -- the syscall-ABI
+ * number sequence's own current highest as of this addition, not related to this file's own
+ * socket-family numbering above). Real getsockname(fd, addr, addrlen) is already only 3
+ * arguments, no call-site patch needed (same shape as SYS_bind/SYS_accept above). Needed the
+ * moment any real std::net consumer calls local_addr() -- see src/net/udp.rs's
+ * oxidebsd_sys_getsockname/src/net/tcp.rs's getsockname in the OxideBSD tree. getpeername below
+ * is a deliberately narrower, still-open gap -- left at real Linux's own inert value since nothing
+ * has needed it yet. */
+#define __NR_getsockname		559
 #define __NR_getpeername		52
 /* OxideBSD's own invention (149, continuing right past SYS_poll = 148). Real Linux's inert value
  * (53) is left unremapped/unused -- no collision risk the way getdents/poll had, it just never
