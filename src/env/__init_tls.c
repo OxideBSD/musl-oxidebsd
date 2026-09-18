@@ -4,6 +4,7 @@
 #include <sys/mman.h>
 #include <string.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "pthread_impl.h"
 #include "libc.h"
 #include "atomic.h"
@@ -134,10 +135,23 @@ static void static_init_tls(size_t *aux)
 #ifndef SYS_mmap2
 #define SYS_mmap2 SYS_mmap
 #endif
+		/* OxideBSD patch: this raw syscall bypassed the already-patched __mmap() wrapper
+		 * (src/mman/mmap.c) entirely, still passing real Linux 6-arg mmap semantics (flags
+		 * as its own argument, fd/off as two more) that this kernel's own 4-register ABI
+		 * can't parse -- flags must ride in prot's own unused high bits, fd/off packed into
+		 * one more register, matching __mmap()'s own packing exactly. Never caught before:
+		 * every prior on-target static binary (tcc, BusyBox, clang, ...) had a small enough
+		 * PT_TLS to stay under `sizeof builtin_tls` and never reach this path at all -- found
+		 * live via a real ld.lld crash (992-byte PT_TLS, the first to cross that threshold),
+		 * a real page fault writing to address -14 (-EFAULT) -- this mmap call failing
+		 * exactly as the comment below already expected of a genuine failure, just never one
+		 * caused by this port's own wire-format mismatch before. */
+		uint64_t prot_wire = ((uint64_t)(uint32_t)(PROT_READ|PROT_WRITE) & 0xff)
+			| ((uint64_t)(uint32_t)(MAP_ANONYMOUS|MAP_PRIVATE) << 8);
+		uint64_t packed = (uint64_t)(uint32_t)(-1);
 		mem = (void *)__syscall(
 			SYS_mmap2,
-			0, libc.tls_size, PROT_READ|PROT_WRITE,
-			MAP_ANONYMOUS|MAP_PRIVATE, -1, 0);
+			0, libc.tls_size, prot_wire, packed);
 		/* -4095...-1 cast to void * will crash on dereference anyway,
 		 * so don't bloat the init code checking for error codes and
 		 * explicitly calling a_crash(). */
