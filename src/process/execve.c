@@ -22,9 +22,18 @@ struct raw_argv_entry {
 	unsigned long len;
 };
 
-/* Mirrors src/process.rs's own MAX_PTR_LEN_ENTRIES (32) -- the kernel silently stops reading past
- * that many entries regardless, so building more here would just be wasted stack space. */
-#define MAX_EXECVE_ENTRIES 32
+/* Mirrors src/process/lifecycle.rs's own MAX_PTR_LEN_ENTRIES (256, raised from an original 32 for
+ * the Clang/LLVM port -- a real clang -cc1 invocation already carries ~25-50 tokens for even a
+ * trivial hello.c) -- the kernel silently stops reading past that many entries regardless, so
+ * building more here would just be wasted stack space. This constant going stale relative to the
+ * kernel's own is a real, previously-live bug: a real clang driver -> cc1 subprocess exec with
+ * more than 32 argv entries got silently truncated mid-flag right here (this array, not the
+ * kernel side, was the actual bottleneck), producing bogus cc1 parse errors like "argument to
+ * '-internal-isystem' is missing" whenever enough preceding flags (e.g. -dumpdir/-static-define)
+ * pushed a later flag's *value* past index 31 -- found live via a real on-target `clang -static -o
+ * /hello.elf /hello.c` invocation, which forks a real `clang -cc1` subprocess (unlike a bare `-c`
+ * compile, which clang runs in-process, never touching this wrapper's own argv-copy loop at all). */
+#define MAX_EXECVE_ENTRIES 256
 
 int execve(const char *path, char *const argv[], char *const envp[])
 {
