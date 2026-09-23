@@ -1041,7 +1041,10 @@
 #define __NR_fchmodat				570
 #define __NR_faccessat				571
 #define __NR_pselect6				270
-#define __NR_ppoll					271
+/* OxideBSD patch: ppoll is OxideBSD's own 575 (continuing past the *at family's 560-574).
+ * Same argument shape as real Linux; the trailing sigsetsize argument lands in R8, which the native
+ * ABI never reads, so src/select/ppoll.c needs no patch. */
+#define __NR_ppoll					575
 #define __NR_unshare				272
 #define __NR_set_robust_list		273
 #define __NR_get_robust_list		274
