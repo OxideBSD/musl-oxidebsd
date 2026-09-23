@@ -1,20 +1,13 @@
+#define _GNU_SOURCE
 #include <unistd.h>
-#include <errno.h>
 #include <fcntl.h>
 #include "syscall.h"
+#include "oxidebsd_at.h"
 
+/* OxideBSD patch: SYS_fchown was never remapped (always ENOSYS), and upstream's EBADF fallback
+ * through /proc/self/fd/N doesn't resolve on OxideBSD's /proc. fchownat(fd, "", AT_EMPTY_PATH)
+ * is the same operation on the fd's own inode. */
 int fchown(int fd, uid_t uid, gid_t gid)
 {
-	int ret = __syscall(SYS_fchown, fd, uid, gid);
-	if (ret != -EBADF || __syscall(SYS_fcntl, fd, F_GETFD) < 0)
-		return __syscall_ret(ret);
-
-	char buf[15+3*sizeof(int)];
-	__procfdname(buf, fd);
-#ifdef SYS_chown
-	return syscall(SYS_chown, buf, uid, gid);
-#else
-	return syscall(SYS_fchownat, AT_FDCWD, buf, uid, gid, 0);
-#endif
-
+	return syscall(SYS_fchownat, __OXIDEBSD_AT(fd, ""), uid, gid, AT_EMPTY_PATH);
 }

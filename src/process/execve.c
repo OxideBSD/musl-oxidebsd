@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include <string.h>
 #include "syscall.h"
+#include "oxidebsd_at.h"
 
 /* OxideBSD patch: real execve(path, argv, envp) passes NUL-terminated char** arrays in
  * RDI/RSI/RDX. OxideBSD's own SYS_execve (src/process.rs's do_execve in the OxideBSD tree) instead
@@ -35,27 +36,45 @@ struct raw_argv_entry {
  * compile, which clang runs in-process, never touching this wrapper's own argv-copy loop at all). */
 #define MAX_EXECVE_ENTRIES 256
 
+static void to_raw_entries(char *const src[], struct raw_argv_entry *dst)
+{
+	int i;
+	for (i = 0; src && src[i] && i < MAX_EXECVE_ENTRIES; i++) {
+		dst[i].ptr = (unsigned long)src[i];
+		dst[i].len = strlen(src[i]);
+	}
+	dst[i].ptr = 0;
+	dst[i].len = 0;
+}
+
 int execve(const char *path, char *const argv[], char *const envp[])
 {
 	struct raw_argv_entry argv_entries[MAX_EXECVE_ENTRIES + 1];
 	struct raw_argv_entry envp_entries[MAX_EXECVE_ENTRIES + 1];
-	int i;
 
-	for (i = 0; argv && argv[i] && i < MAX_EXECVE_ENTRIES; i++) {
-		argv_entries[i].ptr = (unsigned long)argv[i];
-		argv_entries[i].len = strlen(argv[i]);
-	}
-	argv_entries[i].ptr = 0;
-	argv_entries[i].len = 0;
-
-	for (i = 0; envp && envp[i] && i < MAX_EXECVE_ENTRIES; i++) {
-		envp_entries[i].ptr = (unsigned long)envp[i];
-		envp_entries[i].len = strlen(envp[i]);
-	}
-	envp_entries[i].ptr = 0;
-	envp_entries[i].len = 0;
+	to_raw_entries(argv, argv_entries);
+	to_raw_entries(envp, envp_entries);
 
 	long ret = __syscall4(SYS_execve, (long)path, (long)strlen(path),
 		(long)argv_entries, (long)envp_entries);
+	return __syscall_ret(ret);
+}
+
+/* OxideBSD patch: execveat() takes the same length-prefixed argv/envp arrays execve() does, plus
+ * the (dirfd, path) struct every *at() call uses (src/internal/oxidebsd_at.h). musl exports no
+ * execveat(); this is the shared helper fexecve() calls. An early fexecve() patch passed the raw
+ * char ** through instead -- the kernel read pointers as lengths and (before it gained an E2BIG
+ * cap) panicked on the resulting multi-exabyte allocation. */
+hidden int __oxidebsd_execveat(int fd, const char *path, char *const argv[],
+	char *const envp[], int flags)
+{
+	struct raw_argv_entry argv_entries[MAX_EXECVE_ENTRIES + 1];
+	struct raw_argv_entry envp_entries[MAX_EXECVE_ENTRIES + 1];
+
+	to_raw_entries(argv, argv_entries);
+	to_raw_entries(envp, envp_entries);
+
+	long ret = __syscall4(SYS_execveat, (long)__OXIDEBSD_AT(fd, path),
+		(long)argv_entries, (long)envp_entries, flags);
 	return __syscall_ret(ret);
 }

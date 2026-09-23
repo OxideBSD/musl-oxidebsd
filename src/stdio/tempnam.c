@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "syscall.h"
+#include "oxidebsd_at.h"
 
 #define MAXTRIES 100
 
@@ -36,11 +37,9 @@ char *tempnam(const char *dir, const char *pfx)
 
 	for (try=0; try<MAXTRIES; try++) {
 		__randname(s+l-6);
-#ifdef SYS_readlink
-		r = __syscall(SYS_readlink, s, (char[1]){0}, 1);
-#else
-		r = __syscall(SYS_readlinkat, AT_FDCWD, s, (char[1]){0}, 1);
-#endif
+		/* OxideBSD patch: SYS_readlink takes (path_ptr, path_len, buf, bufsize) on OxideBSD, so
+		 * upstream's three-argument call misread every argument -- see src/stdio/remove.c. */
+		r = __syscall(SYS_readlinkat, __OXIDEBSD_AT(AT_FDCWD, s), (char[1]){0}, 1);
 		if (r == -ENOENT) return strdup(s);
 	}
 	return 0;

@@ -1019,19 +1019,27 @@
 #define __NR_inotify_add_watch		254
 #define __NR_inotify_rm_watch		255
 #define __NR_migrate_pages			256
-#define __NR_openat					257
-#define __NR_mkdirat				258
-#define __NR_mknodat				259
-#define __NR_fchownat				260
+/* OxideBSD patch: the *at() family (openat through faccessat below, plus utimensat, renameat2
+ * and execveat further down) is remapped to OxideBSD's own 560-574 range -- continuing past
+ * getsockname's 559, the highest number assigned before these. Their argument shape changes too:
+ * each (dirfd, path) pair is passed as a pointer to a struct __oxidebsd_at (see
+ * src/internal/oxidebsd_at.h), so every call site is patched as well, not just renumbered.
+ * futimesat, faccessat2, fchmodat2 and statx deliberately keep their inert Linux values: the
+ * patched faccessat()/fchmodat() never reach the *2 variants, futimesat() is a utimensat()
+ * wrapper, and statx() falls back to fstatat() on ENOSYS. */
+#define __NR_openat					560
+#define __NR_mkdirat				561
+#define __NR_mknodat				562
+#define __NR_fchownat				563
 #define __NR_futimesat				261
-#define __NR_newfstatat				262
-#define __NR_unlinkat				263
-#define __NR_renameat				264
-#define __NR_linkat					265
-#define __NR_symlinkat				266
-#define __NR_readlinkat				267
-#define __NR_fchmodat				268
-#define __NR_faccessat				269
+#define __NR_newfstatat				564
+#define __NR_unlinkat				565
+#define __NR_renameat				566
+#define __NR_linkat					567
+#define __NR_symlinkat				568
+#define __NR_readlinkat				569
+#define __NR_fchmodat				570
+#define __NR_faccessat				571
 #define __NR_pselect6				270
 #define __NR_ppoll					271
 #define __NR_unshare				272
@@ -1052,7 +1060,7 @@
  * a real ENOENT-for-a-missing-path / success-for-an-existing-one stub, no real timestamp storage
  * (this filesystem has none at all yet) -- enough for BusyBox's touch.c, whose own fallback to
  * open(O_CREAT) on ENOENT is what actually creates a new file. */
-#define __NR_utimensat				167
+#define __NR_utimensat				572
 #define __NR_epoll_pwait			281
 #define __NR_signalfd				282
 #define __NR_timerfd_create			283
@@ -1106,7 +1114,7 @@
 #define __NR_finit_module			313
 #define __NR_sched_setattr			314
 #define __NR_sched_getattr			315
-#define __NR_renameat2				316
+#define __NR_renameat2				573
 #define __NR_seccomp				317
 /* Pre-reserved ahead of implementation: OxideBSD's own invented SYS_GETRANDOM (526, the first slot
  * in a planned-implementation-order batch of syscalls this ABI is claiming numbers for ahead of
@@ -1122,7 +1130,7 @@
 #define __NR_memfd_create			319
 #define __NR_kexec_file_load			320
 #define __NR_bpf				321
-#define __NR_execveat				322
+#define __NR_execveat				574
 #define __NR_userfaultfd			323
 #define __NR_membarrier				324
 #define __NR_mlock2				325

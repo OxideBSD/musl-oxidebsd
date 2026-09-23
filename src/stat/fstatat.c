@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <sys/sysmacros.h>
 #include "syscall.h"
+#include "oxidebsd_at.h"
 
 struct statx {
 	uint32_t stx_mask;
@@ -78,30 +79,13 @@ static int fstatat_kstat(int fd, const char *restrict path, struct stat *restric
 	int ret;
 	struct kstat kst;
 
-	if (flag==AT_EMPTY_PATH && fd>=0 && !*path) {
-		ret = __syscall(SYS_fstat, fd, &kst);
-		if (ret==-EBADF && __syscall(SYS_fcntl, fd, F_GETFD)>=0) {
-			ret = __syscall(SYS_fstatat, fd, path, &kst, flag);
-			if (ret==-EINVAL) {
-				char buf[15+3*sizeof(int)];
-				__procfdname(buf, fd);
-#ifdef SYS_stat
-				ret = __syscall(SYS_stat, buf, &kst);
-#else
-				ret = __syscall(SYS_fstatat, AT_FDCWD, buf, &kst, 0);
-#endif
-			}
-		}
-	}
-#ifdef SYS_lstat
-	else if ((fd == AT_FDCWD || *path=='/') && flag==AT_SYMLINK_NOFOLLOW)
-		ret = __syscall(SYS_lstat, path, &kst);
-#endif
-#ifdef SYS_stat
-	else if ((fd == AT_FDCWD || *path=='/') && !flag)
-		ret = __syscall(SYS_stat, path, &kst);
-#endif
-	else ret = __syscall(SYS_fstatat, fd, path, &kst, flag);
+	/* OxideBSD patch: upstream's AT_FDCWD fast paths called SYS_stat/SYS_lstat with the real
+	 * (path, buf) shape, but OxideBSD's take (path_ptr, path_len, buf) -- every fstatat() on this
+	 * branch was misreading its arguments. OxideBSD's own SYS_fstatat handles every case itself
+	 * (AT_FDCWD, a real dirfd, AT_SYMLINK_NOFOLLOW, AT_EMPTY_PATH), and writes musl's exact
+	 * struct stat layout, which is also struct kstat's on x86_64. (dirfd, path) travels as a
+	 * struct __oxidebsd_at pointer -- see src/internal/oxidebsd_at.h. */
+	ret = __syscall(SYS_fstatat, __OXIDEBSD_AT(fd, path), &kst, flag);
 
 	if (ret) return ret;
 
