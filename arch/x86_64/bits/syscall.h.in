@@ -808,7 +808,9 @@
  * -- this kernel has no capability model to gate CAP_SYS_BOOT against, the same "collapses to
  * always-allowed" reasoning already accepted for do_setpgid/TIOCSCTTY's own force flag. */
 #define __NR_reboot					486
-#define __NR_sethostname			170
+/* OxideBSD patch: sethostname is OxideBSD's own 576 (continuing past ppoll's 575). Same
+ * (name, len) argument shape as real Linux, so src/linux/sethostname.c needs no patch. */
+#define __NR_sethostname			576
 #define __NR_setdomainname			171
 #define __NR_iopl					172
 #define __NR_ioperm					173
