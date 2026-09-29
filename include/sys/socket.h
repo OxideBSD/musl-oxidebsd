@@ -224,6 +224,11 @@ struct linger {
 #define SO_DOMAIN       39
 #endif
 
+/* OxideBSD: FreeBSD's option, at FreeBSD's value: sends on the socket never raise SIGPIPE. */
+#ifndef SO_NOSIGPIPE
+#define SO_NOSIGPIPE    0x0800
+#endif
+
 #ifndef SO_RCVTIMEO
 #if __LONG_MAX == 0x7fffffff
 #define SO_RCVTIMEO     66
