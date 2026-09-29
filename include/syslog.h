@@ -35,6 +35,10 @@ extern "C" {
 #define LOG_CRON     (9<<3)
 #define	LOG_AUTHPRIV (10<<3)
 #define	LOG_FTP      (11<<3)
+/* OxideBSD: FreeBSD's three further facilities (SYSLOG.md). */
+#define LOG_NTP      (12<<3)
+#define LOG_SECURITY (13<<3)
+#define LOG_CONSOLE  (14<<3)
 
 #define LOG_LOCAL0   (16<<3)
 #define LOG_LOCAL1   (17<<3)
@@ -81,10 +85,11 @@ typedef struct {
 	{ "warn", LOG_WARNING }, { "warning", LOG_WARNING }, { 0, -1 } })
 #define facilitynames ((CODE *)(const CODE []){ \
 	{ "auth", LOG_AUTH }, { "authpriv", LOG_AUTHPRIV }, \
+	{ "console", LOG_CONSOLE }, \
 	{ "cron", LOG_CRON }, { "daemon", LOG_DAEMON }, { "ftp", LOG_FTP }, \
 	{ "kern", LOG_KERN }, { "lpr", LOG_LPR }, { "mail", LOG_MAIL }, \
-	{ "mark", INTERNAL_MARK }, { "news", LOG_NEWS }, \
-	{ "security", LOG_AUTH }, { "syslog", LOG_SYSLOG }, \
+	{ "mark", INTERNAL_MARK }, { "news", LOG_NEWS }, { "ntp", LOG_NTP }, \
+	{ "security", LOG_SECURITY }, { "syslog", LOG_SYSLOG }, \
 	{ "user", LOG_USER }, { "uucp", LOG_UUCP }, \
 	{ "local0", LOG_LOCAL0 }, { "local1", LOG_LOCAL1 }, \
 	{ "local2", LOG_LOCAL2 }, { "local3", LOG_LOCAL3 }, \

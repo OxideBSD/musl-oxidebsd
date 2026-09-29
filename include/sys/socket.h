@@ -59,6 +59,54 @@ struct ucred {
 	uid_t uid;
 	gid_t gid;
 };
+#endif
+
+#if defined(_GNU_SOURCE) || defined(_BSD_SOURCE)
+/* OxideBSD: FreeBSD's credential control messages (UNIX.md §9). SCM_CREDS carries a struct
+ * cmsgcred the kernel fills in for the sender, or a struct sockcred the receiver asked for with
+ * LOCAL_CREDS; SCM_CREDS2 a struct sockcred2 (LOCAL_CREDS_PERSISTENT). */
+#define SCM_CREDS       0x03
+#define SCM_CREDS2      0x08
+
+#define CMGROUP_MAX 16
+
+struct cmsgcred {
+	pid_t cmcred_pid;
+	uid_t cmcred_uid;
+	uid_t cmcred_euid;
+	gid_t cmcred_gid;
+	short cmcred_ngroups;
+	gid_t cmcred_groups[CMGROUP_MAX];
+};
+
+struct sockcred {
+	uid_t sc_uid;
+	uid_t sc_euid;
+	gid_t sc_gid;
+	gid_t sc_egid;
+	int sc_ngroups;
+	gid_t sc_groups[1];
+};
+
+#define SOCKCREDSIZE(ngrps) \
+	(sizeof(struct sockcred) + (sizeof(gid_t) * ((ngrps) - 1)))
+
+struct sockcred2 {
+	int sc_version;
+	pid_t sc_pid;
+	uid_t sc_uid;
+	uid_t sc_euid;
+	gid_t sc_gid;
+	gid_t sc_egid;
+	int sc_ngroups;
+	gid_t sc_groups[1];
+};
+
+#define SOCKCRED2SIZE(ngrps) \
+	(sizeof(struct sockcred2) + (sizeof(gid_t) * ((ngrps) - 1)))
+#endif
+
+#ifdef _GNU_SOURCE
 
 struct mmsghdr {
 	struct msghdr msg_hdr;

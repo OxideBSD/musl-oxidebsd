@@ -157,6 +157,8 @@ unsigned ualarm(unsigned, unsigned);
 #endif
 
 #if defined(_GNU_SOURCE) || defined(_BSD_SOURCE)
+/* OxideBSD: the BSDs' getpeereid(3), a local socket peer's credentials (UNIX.md §9.2). */
+int getpeereid(int, uid_t *, gid_t *);
 #define L_SET 0
 #define L_INCR 1
 #define L_XTND 2

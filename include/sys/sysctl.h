@@ -38,6 +38,7 @@ extern "C" {
 #define CTLFLAG_RW	(CTLFLAG_RD|CTLFLAG_WR)
 #define CTLFLAG_TUN	0x00080000
 #define CTLFLAG_RDTUN	(CTLFLAG_RD|CTLFLAG_TUN)
+#define CTLFLAG_SKIP	0x01000000	/* left out of sysctl -a; read by name */
 
 #define CTL_UNSPEC	0
 #define CTL_KERN	1
@@ -101,6 +102,31 @@ struct clockinfo {
 	int spare;
 	int stathz;
 	int profhz;
+};
+
+/* vm.loadavg (FreeBSD's <sys/resource.h>) */
+struct loadavg {
+	unsigned int ldavg[3];
+	long fscale;
+};
+
+/* vm.vmtotal (FreeBSD's <sys/vmmeter.h>): pages and threads */
+struct vmtotal {
+	unsigned long t_vm;
+	unsigned long t_avm;
+	unsigned long t_rm;
+	unsigned long t_arm;
+	unsigned long t_vmshr;
+	unsigned long t_avmshr;
+	unsigned long t_rmshr;
+	unsigned long t_armshr;
+	unsigned long t_free;
+	short t_rq;
+	short t_dw;
+	short t_pw;
+	short t_sl;
+	short t_sw;
+	unsigned short t_pad[3];
 };
 
 int sysctl(const int *, unsigned int, void *, size_t *, const void *, size_t);
