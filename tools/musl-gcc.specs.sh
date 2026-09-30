@@ -23,7 +23,7 @@ libgcc.a%s %:if-exists(libgcc_eh.a%s)
 crtendS.o%s $libdir/crtn.o
 
 *link:
-%{!static-pie:-dynamic-linker $ldso} -nostdlib %{shared:-shared} %{static:-static} %{static-pie:-static -pie --no-dynamic-linker -z text} %{rdynamic:-export-dynamic}
+%{!static-pie:-dynamic-linker $ldso} --eh-frame-hdr -nostdlib %{shared:-shared} %{static:-static} %{static-pie:-static -pie --no-dynamic-linker -z text} %{rdynamic:-export-dynamic}
 
 *esp_link:
 
