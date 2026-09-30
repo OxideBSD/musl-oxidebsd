@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <ctype.h>
 #include "libc.h"
 #include "lock.h"
@@ -122,6 +123,29 @@ static size_t zi_dotprod(const unsigned char *z, const unsigned char *v, size_t 
 	return y;
 }
 
+/* OxideBSD: a program started before tzsetup(8) changed /etc/localtime
+ * follows the change, as on FreeBSD, instead of keeping its zone until it
+ * is restarted: with TZ unset, /etc/localtime is stat'ed at most once a
+ * second, and a different file (device, inode, size or modification time)
+ * reloads the zone. */
+static int localtime_changed(void)
+{
+	static struct stat last;
+	static time_t checked = -1;
+	struct timespec now;
+	struct stat st;
+	__clock_gettime(CLOCK_MONOTONIC, &now);
+	if (now.tv_sec == checked) return 0;
+	checked = now.tv_sec;
+	if (stat("/etc/localtime", &st)) memset(&st, 0, sizeof st);
+	int changed = st.st_dev != last.st_dev || st.st_ino != last.st_ino
+		|| st.st_size != last.st_size
+		|| st.st_mtim.tv_sec != last.st_mtim.tv_sec
+		|| st.st_mtim.tv_nsec != last.st_mtim.tv_nsec;
+	last = st;
+	return changed;
+}
+
 static void do_tzset()
 {
 	char buf[NAME_MAX+25], *pathname=buf+24;
@@ -132,10 +156,11 @@ static void do_tzset()
 		"/usr/share/zoneinfo/\0/share/zoneinfo/\0/etc/zoneinfo/\0";
 
 	s = getenv("TZ");
+	int changed = !s && localtime_changed();
 	if (!s) s = "/etc/localtime";
 	if (!*s) s = __utc;
 
-	if (old_tz && !strcmp(s, old_tz)) return;
+	if (old_tz && !strcmp(s, old_tz) && !changed) return;
 
 	for (i=0; i<5; i++) r0[i] = r1[i] = 0;
 

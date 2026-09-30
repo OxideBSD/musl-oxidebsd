@@ -98,8 +98,10 @@ static void _vsyslog(int priority, const char *message, va_list ap)
 
 	if (!(priority & LOG_FACMASK)) priority |= log_facility;
 
+	/* OxideBSD: local time, as the BSDs' syslog(3) stamps messages
+	 * (stock musl uses UTC). */
 	now = time(NULL);
-	gmtime_r(&now, &tm);
+	localtime_r(&now, &tm);
 	strftime_l(timebuf, sizeof timebuf, "%b %e %T", &tm, C_LOCALE);
 
 	pid = (log_opt & LOG_PID) ? getpid() : 0;
