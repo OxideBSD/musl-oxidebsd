@@ -1,42 +1,47 @@
 #include <sys/mount.h>
+#include <sys/uio.h>
 #include <string.h>
 #include <errno.h>
 #include "syscall.h"
 
-/* OxideBSD patch: real mount()'s wire format is (special, dir, fstype, flags, data) -- five
- * conceptual args, doesn't fit this ABI's 4 registers (RDI/RSI/RDX/R10). modules/oxfs's own mount
- * table (modules/oxfs/src/lib.rs in the OxideBSD tree) only ever supports the two shapes BusyBox's
- * own util-linux/mount.c actually issues -- `mount(source, target, NULL, MS_BIND, NULL)` for
- * `--bind`, `mount("tmpfs", target, "tmpfs", flags, options)` for `-t tmpfs` -- so this dispatches
- * to one of two dedicated syscalls instead of forcing one idealized shape the way chown()/rename()
- * were remapped. Reuses the real, still-distinctly-named create_module/init_module syscall slots
- * (174/175) rather than inventing fictional new macro names -- see arch/x86_64/bits/syscall.h.in's
- * own create_module comment for the full reasoning (why those numbers, and why not the
- * SYS_utimensat=167-adjacent 168-170 range every prior addition otherwise continues into). Any
- * other real mount() shape (a real block-device mount, any other fstype) isn't supported by this
- * port's kernel side at all -- fails here with ENODEV rather than ever reaching the kernel with a
- * request it has no way to honor.
- */
+/* OxideBSD patch: nmount(2), FreeBSD's mount interface (OxideBSD's number, 584): name/value
+ * options in an iovec array, one call for every file system type. See nmount(2) in the OxideBSD
+ * tree (share/man/man2/nmount.2). */
+int nmount(struct iovec *iov, unsigned niov, int flags)
+{
+	return syscall(SYS_nmount, iov, niov, flags);
+}
+
+/* OxideBSD patch: mount(2) on nmount(2). The two shapes the kernel has: a bind mount
+ * (MS_BIND, which is nullfs), and `-t tmpfs`. Flags other than MS_BIND, and data, are ignored, as
+ * the kernel takes no options yet; any other file system type is ENODEV. */
 int mount(const char *special, const char *dir, const char *fstype, unsigned long flags, const void *data)
 {
+	struct iovec iov[6];
+	unsigned n = 0;
 	(void)data;
+#define OPT(name, value) do { \
+		iov[n].iov_base = (void *)(name); iov[n++].iov_len = strlen(name) + 1; \
+		iov[n].iov_base = (void *)(value); iov[n++].iov_len = strlen(value) + 1; \
+	} while (0)
 	if (fstype && !strcmp(fstype, "tmpfs")) {
-		long ret = __syscall2(SYS_init_module, (long)dir, (long)strlen(dir));
-		return __syscall_ret(ret);
+		OPT("fstype", "tmpfs");
+	} else if (flags & MS_BIND) {
+		OPT("fstype", "nullfs");
+		OPT("from", special);
+	} else {
+		errno = ENODEV;
+		return -1;
 	}
-	if (flags & MS_BIND) {
-		long ret = __syscall4(SYS_create_module, (long)special, (long)strlen(special),
-			(long)dir, (long)strlen(dir));
-		return __syscall_ret(ret);
-	}
-	errno = ENODEV;
-	return -1;
+	OPT("fspath", dir);
+#undef OPT
+	return nmount(iov, n, 0);
 }
 
 /* OxideBSD patch: real umount()/umount2()'s own (special[, flags]) wire format fits this ABI's 4
  * registers whole once path_len is added -- the same "compute strlen() explicitly" patch
  * chown()/rename() already use, no shape change needed otherwise. Reuses the real delete_module
- * syscall slot (176), same reasoning as mount()'s own comment above -- this file's own SYS_umount2
+ * syscall slot (176), see arch/x86_64/bits/syscall.h.in -- this file's own SYS_umount2
  * macro stays at its original, inert real-Linux value (166), unreferenced from here on.
  */
 int umount(const char *special)

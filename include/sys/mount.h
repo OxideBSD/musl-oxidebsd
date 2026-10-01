@@ -68,6 +68,10 @@ int mount(const char *, const char *, const char *, unsigned long, const void *)
 int umount(const char *);
 int umount2(const char *, int);
 
+/* OxideBSD: nmount(2), FreeBSD's name/value mount interface. */
+struct iovec;
+int nmount(struct iovec *, unsigned, int);
+
 #ifdef __cplusplus
 }
 #endif
