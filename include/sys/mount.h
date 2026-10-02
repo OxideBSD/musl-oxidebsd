@@ -71,6 +71,8 @@ int umount2(const char *, int);
 /* OxideBSD: nmount(2), FreeBSD's name/value mount interface. */
 struct iovec;
 int nmount(struct iovec *, unsigned, int);
+/* nmount(2)'s flags, FreeBSD's values: the same as the "nosuid" option. */
+#define MNT_NOSUID      0x00000008
 
 #ifdef __cplusplus
 }

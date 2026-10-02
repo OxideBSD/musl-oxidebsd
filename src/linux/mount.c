@@ -13,11 +13,12 @@ int nmount(struct iovec *iov, unsigned niov, int flags)
 }
 
 /* OxideBSD patch: mount(2) on nmount(2). The two shapes the kernel has: a bind mount
- * (MS_BIND, which is nullfs), and `-t tmpfs`. Flags other than MS_BIND, and data, are ignored, as
- * the kernel takes no options yet; any other file system type is ENODEV. */
+ * (MS_BIND, which is nullfs), and `-t tmpfs`. MS_NOSUID becomes the "nosuid" option; other
+ * flags, and data, are ignored, as the kernel has no other options; any other file system type is
+ * ENODEV. */
 int mount(const char *special, const char *dir, const char *fstype, unsigned long flags, const void *data)
 {
-	struct iovec iov[6];
+	struct iovec iov[8];
 	unsigned n = 0;
 	(void)data;
 #define OPT(name, value) do { \
@@ -34,6 +35,7 @@ int mount(const char *special, const char *dir, const char *fstype, unsigned lon
 		return -1;
 	}
 	OPT("fspath", dir);
+	if (flags & MS_NOSUID) OPT("nosuid", "");
 #undef OPT
 	return nmount(iov, n, 0);
 }
