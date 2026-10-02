@@ -60,7 +60,7 @@ static int is_session(short type)
 static int id_matches(const struct utmpx *a, const struct utmpx *b)
 {
 	switch (a->ut_type) {
-	case BOOT_TIME: case OLD_TIME: case NEW_TIME:
+	case BOOT_TIME: case OLD_TIME: case NEW_TIME: case SHUTDOWN_TIME:
 		return b->ut_type == a->ut_type;
 	case INIT_PROCESS: case LOGIN_PROCESS: case USER_PROCESS: case DEAD_PROCESS:
 		return is_session(b->ut_type)

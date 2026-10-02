@@ -60,6 +60,13 @@ int utmpxname(const char *);
 #define USER_PROCESS    7
 #define DEAD_PROCESS    8
 
+#if defined(_BSD_SOURCE) || defined(_GNU_SOURCE)
+/* OxideBSD: init's shutdown record. FreeBSD's name; NetBSD's value and name
+ * (FreeBSD's 8 is DEAD_PROCESS here). */
+#define DOWN_TIME       11
+#define SHUTDOWN_TIME   DOWN_TIME
+#endif
+
 #ifdef __cplusplus
 }
 #endif
