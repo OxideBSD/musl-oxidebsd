@@ -778,6 +778,9 @@
 /* OxideBSD: nmount(2), 584, FreeBSD's name/value mount interface; mount() is built on it (see
  * src/linux/mount.c). */
 #define __NR_nmount				584
+/* OxideBSD: procctl(2), 585, per-process controls in FreeBSD's procctl() shape, OxideBSD's own
+ * commands (OxideBSD-doc COW.md). See src/misc/procctl.c. */
+#define __NR_procctl				585
 #define __NR_setdomainname			171
 #define __NR_iopl					172
 #define __NR_ioperm					173
