@@ -2,15 +2,17 @@
 .type vfork,@function
 vfork:
 	pop %rdx
-	/* OxideBSD has no true vfork (shared-address-space-until-exec) semantics -- this alias to
-	 * SYS_FORK's own real number (2, not real Linux vfork's 58) makes vfork() behave exactly
-	 * like a real fork() instead, which is a valid, POSIX-legal implementation of vfork() (the
-	 * standard explicitly allows treating it as a synonym for fork()). Hardcoded here, not
-	 * fixable via arch/x86_64/bits/syscall.h.in's __NR_* table like every other remapped
-	 * syscall -- this file is hand-written asm invoking the raw number directly. */
-	mov $2,%eax
+	/* OxideBSD: hand-written asm bypasses bits/syscall.h.in's remap table, so the number is
+	 * spelled out: SYS_vfork is 586, OxideBSD's own (the vfork kernel module). The child borrows
+	 * this address space and returns here on this stack, so the return address is kept in a
+	 * register, not on the stack the child may overwrite. */
+	mov $586,%eax
 	syscall
-	push %rdx
+	/* OxideBSD: a failed call sets the carry flag with a positive errno; __syscall_ret wants it
+	 * negative (the conversion syscall_arch.h does for C callers, as in clone.s). */
+	jnc 1f
+	neg %rax
+1:	push %rdx
 	mov %rax,%rdi
 	.hidden __syscall_ret
 	jmp __syscall_ret

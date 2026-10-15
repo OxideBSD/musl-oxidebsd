@@ -263,20 +263,12 @@
 #define __NR_getsockopt			579
 #define __NR_clone				56
 /* _Fork() (src/process/_Fork.c) prefers plain SYS_fork (a no-arg fork, exactly OxideBSD's own
- * SYS_FORK=2) over SYS_clone whenever SYS_fork is defined -- true here, so SYS_clone is never
- * reached by musl's own fork() and is left unmapped (real `clone(2)`-with-flags semantics don't
- * exist on OxideBSD at all yet). The real libc *vfork()* entry point (a separate, directly
- * callable function, not something fork() calls into) is a different story: it's hand-written
- * x86_64 asm (src/process/x86_64/vfork.s) that invokes its raw syscall number directly, bypassing
- * this table entirely -- so this macro itself was never actually load-bearing for vfork()'s own
- * real behavior, and is left here at this table's own SYS_fork value (2) purely for a reader's
- * benefit, not because anything still resolves this particular macro symbolically (confirmed:
- * nothing in src/ references it by name). vfork.s itself now hardcodes 2 directly, with its own
- * comment explaining why
- * (OxideBSD has no true vfork share-until-exec semantics, so aliasing it to a real fork() is the
- * standard's own explicitly-allowed implementation). */
+ * SYS_FORK=2) over SYS_clone whenever SYS_fork is defined, so musl's fork() never reaches
+ * SYS_clone. vfork() is its own call, OxideBSD's number 586 (the vfork kernel module): the
+ * child borrows the parent's address space until it execs or exits. The hand-written
+ * src/process/x86_64/vfork.s spells the number out itself. */
 #define __NR_fork				2
-#define __NR_vfork				2
+#define __NR_vfork				586
 /* Numerically unchanged from upstream (59 happens to already be OxideBSD's real SYS_EXECVE), but
  * NOT actually argument-compatible yet, same category of gap as SYS_open above: musl's execve()
  * passes (path, argv, envp) in RDI/RSI/RDX; OxideBSD's SYS_EXECVE (src/process.rs::do_execve)
