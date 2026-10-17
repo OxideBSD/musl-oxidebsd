@@ -269,6 +269,13 @@
  * src/process/x86_64/vfork.s spells the number out itself. */
 #define __NR_fork				2
 #define __NR_vfork				586
+/* OxideBSD's own numbers (587-590), the vfs kernel module's (OxideBSD-doc VFS.md 4.4, 4.6):
+ * getvfsstat(buf, bufsize, flags), NetBSD's mount list; statvfs1(path, len, buf) and
+ * fstatvfs1(fd, buf), which fill struct statvfs whole, names included; revoke(path, len). */
+#define __NR_getvfsstat			587
+#define __NR_statvfs1			588
+#define __NR_fstatvfs1			589
+#define __NR_revoke				590
 /* Numerically unchanged from upstream (59 happens to already be OxideBSD's real SYS_EXECVE), but
  * NOT actually argument-compatible yet, same category of gap as SYS_open above: musl's execve()
  * passes (path, argv, envp) in RDI/RSI/RDX; OxideBSD's SYS_EXECVE (src/process.rs::do_execve)

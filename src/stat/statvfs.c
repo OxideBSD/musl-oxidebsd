@@ -34,35 +34,19 @@ static int __fstatfs(int fd, struct statfs *buf)
 weak_alias(__statfs, statfs);
 weak_alias(__fstatfs, fstatfs);
 
-static void fixup(struct statvfs *out, const struct statfs *in)
-{
-	*out = (struct statvfs){0};
-	out->f_bsize = in->f_bsize;
-	out->f_frsize = in->f_frsize ? in->f_frsize : in->f_bsize;
-	out->f_blocks = in->f_blocks;
-	out->f_bfree = in->f_bfree;
-	out->f_bavail = in->f_bavail;
-	out->f_files = in->f_files;
-	out->f_ffree = in->f_ffree;
-	out->f_favail = in->f_ffree;
-	out->f_fsid = in->f_fsid.__val[0];
-	out->f_flag = in->f_flags;
-	out->f_namemax = in->f_namelen;
-	out->f_type = in->f_type;
-}
-
+/* OxideBSD: statvfs1 and fstatvfs1 fill struct statvfs whole, with the file system's type and
+ * mount names (NetBSD's shape); getvfsstat lists every mount. */
 int statvfs(const char *restrict path, struct statvfs *restrict buf)
 {
-	struct statfs kbuf;
-	if (__statfs(path, &kbuf)<0) return -1;
-	fixup(buf, &kbuf);
-	return 0;
+	return syscall(SYS_statvfs1, path, strlen(path), buf);
 }
 
 int fstatvfs(int fd, struct statvfs *buf)
 {
-	struct statfs kbuf;
-	if (__fstatfs(fd, &kbuf)<0) return -1;
-	fixup(buf, &kbuf);
-	return 0;
+	return syscall(SYS_fstatvfs1, fd, buf);
+}
+
+int getvfsstat(struct statvfs *buf, size_t bufsize, int flags)
+{
+	return syscall(SYS_getvfsstat, buf, bufsize, flags);
 }

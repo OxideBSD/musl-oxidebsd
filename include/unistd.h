@@ -163,6 +163,7 @@ int getpeereid(int, uid_t *, gid_t *);
 #define L_INCR 1
 #define L_XTND 2
 int brk(void *);
+int revoke(const char *);
 void *sbrk(intptr_t);
 pid_t vfork(void);
 int vhangup(void);

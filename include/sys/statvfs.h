@@ -9,6 +9,7 @@ extern "C" {
 
 #define __NEED_fsblkcnt_t
 #define __NEED_fsfilcnt_t
+#define __NEED_size_t
 #include <bits/alltypes.h>
 
 struct statvfs {
@@ -25,10 +26,26 @@ struct statvfs {
 	unsigned long f_flag, f_namemax;
 	unsigned int f_type;
 	int __reserved[5];
+	/* OxideBSD, as NetBSD's statvfs (POSIX allows more members): the mounted file system's type,
+	 * where it is mounted and what from. */
+	char f_fstypename[32];
+	char f_mntonname[1024];
+	char f_mntfromname[1024];
 };
+
+#define VFS_NAMELEN 32
+#define VFS_MNAMELEN 1024
 
 int statvfs (const char *__restrict, struct statvfs *__restrict);
 int fstatvfs (int, struct statvfs *);
+
+#if defined(_GNU_SOURCE) || defined(_BSD_SOURCE)
+/* NetBSD's: every mounted file system, as many as bufsize bytes hold (all of them counted when
+ * buf is null); ST_WAIT or ST_NOWAIT. The number of records. */
+int getvfsstat(struct statvfs *, size_t, int);
+#define ST_WAIT   1
+#define ST_NOWAIT 2
+#endif
 
 #define ST_RDONLY 1
 #define ST_NOSUID 2
